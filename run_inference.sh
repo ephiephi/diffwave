@@ -1,0 +1,1 @@
+python diffwave/inference.py /data/ephraim/models/diffwave/diffwave-ljspeech-22kHz-1000578.pt -s /data/ephraim/datasets/known_noise/noisy_wav/fileid_9_m0_s0.01.wav.spec.npy -o /data/ephraim/datasets/known_noise/enhanced_diffwave/fileid_9_m0_s0.01.wav
