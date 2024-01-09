@@ -31,11 +31,11 @@ def predict(
     spectrogram=None,
     model_dir=None,
     params=None,
-    cur_noise_var=0.01,
     device=torch.device("cuda"),
     fast_sampling=False,
     guidance=False,
-    guid_s=0.005,
+    cur_noise_std=0.01,
+    guid_s = 0.01
 ):
     # Lazy load model.
     if not model_dir in models:
@@ -104,21 +104,21 @@ def predict(
             eps_theta = model(
                 audio, torch.tensor([T[n]], device=audio.device), spectrogram
             ).squeeze(1)
+            audio = c1 * (audio - c2 * eps_theta)
+
             noise = torch.randn_like(audio)
             sigma = ((1.0 - alpha_cum[n - 1]) / (1.0 - alpha_cum[n]) * beta[n]) ** 0.5
 
-            mu_theta = c1 * (audio - c2 * eps_theta)
-            if not guidance:
-                audio = mu_theta
-            elif guidance:
-                c3 = 1 / np.sqrt(alpha_cum[t])
-                c4 = ((1 - alpha_cum[t]) ** 2) / alpha_cum[t]
-                grad_log_p = c3 * (y_clean - c3 * audio) / (c4 + cur_noise_var)**2
-                audio = mu_theta + guid_s * sigma * grad_log_p
+            if guidance:
+                noise2 = torch.randn_like(audio)
+                c3 = -1 / np.sqrt(alpha_cum[n])
+                c4 = -0.5 / (1 + cur_noise_std)
+                sigma_p_n = 1 + cur_noise_std
+                grad_log_p = 0 + c3 * c4 * sigma_p_n * noise2
+                audio += guid_s * sigma * grad_log_p
 
             if n > 0:
                 audio += sigma * noise
-
             audio = torch.clamp(audio, -1.0, 1.0)
     return audio, model.params.sample_rate
 
